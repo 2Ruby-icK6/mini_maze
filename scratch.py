@@ -117,41 +117,57 @@ class PathfindingApp:
         self.root = root
         self.root.title("Maze Pathfinding")
 
-        self.rows_label = tk.Label(root, text="Rows:")
+        self.rows_label = tk.Label(root, text="Rows:", font=("Arial", 12, "bold"))
         self.rows_label.grid(row=0, column=0)
         self.rows_entry = tk.Entry(root)
         self.rows_entry.grid(row=0, column=1)
 
-        self.cols_label = tk.Label(root, text="Columns:")
+        self.cols_label = tk.Label(root, text="Columns:", font=("Arial", 12, "bold"))
         self.cols_label.grid(row=1, column=0)
         self.cols_entry = tk.Entry(root)
         self.cols_entry.grid(row=1, column=1)
 
-        self.maze_label = tk.Label(root, text="Maze Layout (0 for open, 1 for wall):")
-        self.maze_label.grid(row=2, column=0, columnspan=2)
+        self.generate_button = tk.Button(root, text="Generate Maze", command=self.generate_maze)
+        self.generate_button.grid(row=2, column=0, columnspan=2)
+
+        self.maze_label = tk.Label(root, text="Maze Layout (Editable):")
+        self.maze_label.grid(row=3, column=0, columnspan=2)
 
         self.maze_text = tk.Text(root, height=10, width=30)
-        self.maze_text.grid(row=3, column=0, columnspan=2)
+        self.maze_text.grid(row=4, column=0, columnspan=2)
 
-        self.start_label = tk.Label(root, text="Start Point (row, col):")
-        self.start_label.grid(row=4, column=0)
-        self.start_entry = tk.Entry(root)
-        self.start_entry.grid(row=4, column=1)
-
-        self.end_label = tk.Label(root, text="End Point (row, col):")
-        self.end_label.grid(row=5, column=0)
-        self.end_entry = tk.Entry(root)
-        self.end_entry.grid(row=5, column=1)
+        self.preview_button = tk.Button(root, text="Preview Maze", command=self.preview_maze)
+        self.preview_button.grid(row=5, column=0, columnspan=2)
 
         self.algorithm_label = tk.Label(root, text="Algorithm:")
-        self.algorithm_label.grid(row=6, column=0)
+        self.algorithm_label.grid(row=7, column=0)
         self.algorithm_choice = tk.StringVar()
         self.algorithm_choice.set("BFS")
         self.algorithm_menu = tk.OptionMenu(root, self.algorithm_choice, "BFS", "DFS", "A*")
-        self.algorithm_menu.grid(row=6, column=1)
+        self.algorithm_menu.grid(row=7, column=1)
 
         self.run_button = tk.Button(root, text="Run", command=self.run_algorithm)
-        self.run_button.grid(row=7, column=0, columnspan=2)
+        self.run_button.grid(row=8, column=0, columnspan=2)
+
+    def generate_maze(self):
+        try:
+            rows = int(self.rows_entry.get())
+            cols = int(self.cols_entry.get())
+            if rows <= 0 or cols <= 0:
+                raise ValueError("Rows and columns must be positive integers.")
+
+            # Automatically generate a default maze with all 0s (open spaces)
+            maze = [[0] * cols for _ in range(rows)]
+            # Mark the start and end points
+            maze[0][0] = "#"  # Start point
+            maze[rows - 1][cols - 1] = "*"  # End point
+
+            # Display the generated maze in the text area (editable)
+            self.maze_text.delete("1.0", tk.END)
+            for row in maze:
+                self.maze_text.insert(tk.END, " ".join(map(str, row)) + "\n")
+        except ValueError as e:
+            messagebox.showerror("Input Error", str(e))
 
     def get_maze_from_input(self):
         try:
@@ -161,18 +177,30 @@ class PathfindingApp:
 
             maze_input = self.maze_text.get("1.0", tk.END).strip().split("\n")
             for line in maze_input:
-                row = list(map(int, line.split()))
+                row = []
+                for char in line.split():
+                    if char == "#":
+                        row.append(0)  # Treat start as open space (0)
+                        start = (len(maze), len(row) - 1)
+                    elif char == "*":
+                        row.append(0)  # Treat end as open space (0)
+                        end = (len(maze), len(row) - 1)
+                    else:
+                        row.append(int(char))
                 if len(row) != cols:
                     raise ValueError(f"Each row must have {cols} columns.")
                 maze.append(row)
-
-            start = tuple(map(int, self.start_entry.get().split(",")))
-            end = tuple(map(int, self.end_entry.get().split(",")))
 
             return maze, start, end
         except ValueError as e:
             messagebox.showerror("Input Error", str(e))
             return None, None, None
+
+    def preview_maze(self):
+        maze, start, end = self.get_maze_from_input()
+        if maze is None:
+            return
+        visualize_maze(maze, start=start, end=end, title="Preview Maze")
 
     def run_algorithm(self):
         maze, start, end = self.get_maze_from_input()
