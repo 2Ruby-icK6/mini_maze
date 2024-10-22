@@ -2,6 +2,8 @@ import heapq
 from collections import deque
 import matplotlib.pyplot as plt
 import numpy as np
+import tkinter as tk
+from tkinter import messagebox
 
 # Helper functions for pathfinding algorithms
 def get_neighbors(position, maze):
@@ -110,42 +112,92 @@ def visualize_maze(maze, path=None, start=None, end=None, title="Maze"):
     plt.legend()
     plt.show()
 
-# Define the maze and the start/end points
-maze = [
-    ["#", 1, 0, 0, 0],
-    [0, 1, 0, 1, 0],
-    [0, 0, 0, 1, 0],
-    [1, 1, 0, 1, 0],
-    [0, 0, 0, 0, "*"]
-]
-start = (0, 0)
-end = (4, 4)
+class PathfindingApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Maze Pathfinding")
 
-# Find paths using BFS, DFS, and A* algorithms
-bfs_path = bfs(maze, start, end)
-dfs_path = dfs(maze, start, end)
-a_star_path = a_star(maze, start, end)
+        self.rows_label = tk.Label(root, text="Rows:")
+        self.rows_label.grid(row=0, column=0)
+        self.rows_entry = tk.Entry(root)
+        self.rows_entry.grid(row=0, column=1)
 
-# Visualize the original maze
-visualize_maze(maze, start=start, end=end, title="Original Maze")
+        self.cols_label = tk.Label(root, text="Columns:")
+        self.cols_label.grid(row=1, column=0)
+        self.cols_entry = tk.Entry(root)
+        self.cols_entry.grid(row=1, column=1)
 
-# Visualize BFS path
-if bfs_path:
-    print("BFS path:", bfs_path)
-    visualize_maze(maze, path=bfs_path, start=start, end=end, title="BFS Path")
-else:
-    print("No BFS path found.")
+        self.maze_label = tk.Label(root, text="Maze Layout (0 for open, 1 for wall):")
+        self.maze_label.grid(row=2, column=0, columnspan=2)
 
-# Visualize DFS path
-if dfs_path:
-    print("DFS path:", dfs_path)
-    visualize_maze(maze, path=dfs_path, start=start, end=end, title="DFS Path")
-else:
-    print("No DFS path found.")
+        self.maze_text = tk.Text(root, height=10, width=30)
+        self.maze_text.grid(row=3, column=0, columnspan=2)
 
-# Visualize A* path
-if a_star_path:
-    print("A* path:", a_star_path)
-    visualize_maze(maze, path=a_star_path, start=start, end=end, title="A* Path")
-else:
-    print("No A* path found.")
+        self.start_label = tk.Label(root, text="Start Point (row, col):")
+        self.start_label.grid(row=4, column=0)
+        self.start_entry = tk.Entry(root)
+        self.start_entry.grid(row=4, column=1)
+
+        self.end_label = tk.Label(root, text="End Point (row, col):")
+        self.end_label.grid(row=5, column=0)
+        self.end_entry = tk.Entry(root)
+        self.end_entry.grid(row=5, column=1)
+
+        self.algorithm_label = tk.Label(root, text="Algorithm:")
+        self.algorithm_label.grid(row=6, column=0)
+        self.algorithm_choice = tk.StringVar()
+        self.algorithm_choice.set("BFS")
+        self.algorithm_menu = tk.OptionMenu(root, self.algorithm_choice, "BFS", "DFS", "A*")
+        self.algorithm_menu.grid(row=6, column=1)
+
+        self.run_button = tk.Button(root, text="Run", command=self.run_algorithm)
+        self.run_button.grid(row=7, column=0, columnspan=2)
+
+    def get_maze_from_input(self):
+        try:
+            rows = int(self.rows_entry.get())
+            cols = int(self.cols_entry.get())
+            maze = []
+
+            maze_input = self.maze_text.get("1.0", tk.END).strip().split("\n")
+            for line in maze_input:
+                row = list(map(int, line.split()))
+                if len(row) != cols:
+                    raise ValueError(f"Each row must have {cols} columns.")
+                maze.append(row)
+
+            start = tuple(map(int, self.start_entry.get().split(",")))
+            end = tuple(map(int, self.end_entry.get().split(",")))
+
+            return maze, start, end
+        except ValueError as e:
+            messagebox.showerror("Input Error", str(e))
+            return None, None, None
+
+    def run_algorithm(self):
+        maze, start, end = self.get_maze_from_input()
+        if maze is None:
+            return
+
+        algorithm = self.algorithm_choice.get()
+        path = None
+
+        if algorithm == "BFS":
+            path = bfs(maze, start, end)
+            algo_name = "BFS"
+        elif algorithm == "DFS":
+            path = dfs(maze, start, end)
+            algo_name = "DFS"
+        elif algorithm == "A*":
+            path = a_star(maze, start, end)
+            algo_name = "A*"
+
+        if path:
+            visualize_maze(maze, path=path, start=start, end=end, title=f"{algo_name} Path")
+        else:
+            messagebox.showinfo("Result", f"No path found using {algo_name}.")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = PathfindingApp(root)
+    root.mainloop()
